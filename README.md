@@ -56,7 +56,7 @@ docker run -e VERSION -v ./config:/app -v ./run.sh:/run.sh --rm -it "nixos/nix:2
 2. Download the latest image from [release page](https://github.com/linitio/openstack-nixos-image/releases "Release page")
 3. Upload image to your OpenStack environment
    ```sh
-   openstack image create --disk-format=qcow2 --container-format=bare --min-disk 25 --file nixos.qcow2  'NixOS'
+   openstack image create --disk-format=qcow2 --container-format=bare --min-disk 5 --file nixos.qcow2  'NixOS'
    ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>

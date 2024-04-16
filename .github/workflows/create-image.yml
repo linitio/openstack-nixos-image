@@ -1,0 +1,44 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+env:
+  VERSION: ${{ github.ref_name }}
+  S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+  ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+  SECRET_KEY: ${{ secrets.SECRET_KEY }}
+  S3_ALIAS: ${{ secrets.S3_ALIAS }}
+  S3_BUCKET: ${{ vars.S3_BUCKET }}
+
+# Run the workflow on tags only
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: [ self-hosted, Linux ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install prerequisites
+        run: |
+          sudo dnf update -y
+      - name: Build the Image
+        run: |
+          sudo docker run --env VERSION="$VERSION" -v ./config:/app -v ./run.sh:/run.sh --rm "nixos/nix:2.21.2" sh /run.sh
+          sudo md5sum config/nixos.qcow2  > md5.txt
+          sudo sha1sum -b config/nixos.qcow2 > sha1.txt
+          sudo sha256sum -b config/nixos.qcow2 > sha256.txt
+      - name: Uploading image in object storage
+        run: |
+          echo "Uploading image in object storage"
+          mc alias set ${{ env.S3_ALIAS }} ${{ env.S3_ENDPOINT }} ${{ env.ACCESS_KEY }} ${{ env.SECRET_KEY }}
+          mc cp config/nixos.qcow2 ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/nixos-${{ env.VERSION }}-x86_64-linux.qcow2
+          mc cp md5.txt ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/md5.txt
+          mc cp sha1.txt ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/sha1.txt
+          mc cp sha256.txt ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/sha256.txt
+          mc cp ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/nixos-${{ env.VERSION }}-x86_64-linux.qcow2 ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/${{ env.VERSION }}/nixos-${{ env.VERSION }}-x86_64-linux.qcow2
+          mc cp ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/md5.txt ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/${{ env.VERSION }}/md5.txt
+          mc cp ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/sha1.txt ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/${{ env.VERSION }}/sha1.txt
+          mc cp ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/latest/sha256.txt ${{ env.S3_ALIAS }}/${{ env.S3_BUCKET }}/${{ env.VERSION }}/sha256.txt

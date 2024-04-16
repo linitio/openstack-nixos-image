@@ -1,0 +1,5 @@
+.idea
+config/flake.nix
+config/flake.lock
+config/result
+*.qcow2
